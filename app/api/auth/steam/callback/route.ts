@@ -95,7 +95,9 @@ export async function GET(request: NextRequest) {
       try {
         const player = await getPlayerSummary(steamId64);
         if (player) playerName = player.personaname;
-      } catch {}
+      } catch (e) {
+        console.error('Failed to fetch Steam player summary:', e);
+      }
 
       const displayName = playerName || `SteamUser_${steamId64.slice(-6)}`;
       const email = `${steamId64}@steam.cs2bd`;
@@ -109,7 +111,8 @@ export async function GET(request: NextRequest) {
             role: newUserRole,
           },
         });
-      } catch {
+      } catch (e) {
+        console.error('Failed to create Steam user:', e);
         return NextResponse.redirect(
           `${baseUrl}/auth/signin?error=AccountCreationFailed`
         );

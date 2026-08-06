@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 
 interface BuyPanelProps {
   listingId: string
@@ -8,7 +8,7 @@ interface BuyPanelProps {
 }
 
 export default function BuyPanel({ listingId, priceCents }: BuyPanelProps) {
-  const [step, setStep] = useState<'INITIAL' | 'INSTRUCTIONS' | 'SUBMITTED'>('INITIAL')
+  const [step, setStep] = useState<'FORM' | 'SUBMITTED'>('FORM')
   const [method, setMethod] = useState<'bKash' | 'Nagad' | 'Personal'>('bKash')
   const [senderNumber, setSenderNumber] = useState('')
   const [transactionId, setTransactionId] = useState('')
@@ -17,34 +17,14 @@ export default function BuyPanel({ listingId, priceCents }: BuyPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
-  const [orderDetails, setOrderDetails] = useState<{
-    orderId: string
-    reference: string
-    merchantNumber: string
-    amount: string
-    reservedUntil: number
-  } | null>(null)
+  const [result, setResult] = useState<{ paymentId: string; orderId: string } | null>(null)
 
   const formattedAmount = (priceCents / 100).toLocaleString('en-BD')
 
-  // Merchant numbers configuration for BD
   const merchantNumbers = {
     bKash: '01700-112233',
     Nagad: '01800-445566',
     Personal: '01900-778899',
-  }
-
-  function handleReserve() {
-    const randomId = Math.floor(1000 + Math.random() * 9000)
-    const randomRef = Math.random().toString(36).substring(2, 7).toUpperCase()
-    setOrderDetails({
-      orderId: `ORD-${randomId}-BD`,
-      reference: `UG-${randomRef}`,
-      merchantNumber: merchantNumbers[method],
-      amount: formattedAmount,
-      reservedUntil: Date.now() + 30 * 60 * 1000,
-    })
-    setStep('INSTRUCTIONS')
   }
 
   function copyToClipboard(text: string, label: string) {
@@ -70,18 +50,23 @@ export default function BuyPanel({ listingId, priceCents }: BuyPanelProps) {
       form.append('method', method)
       form.append('senderNumber', senderNumber)
       form.append('transactionId', transactionId)
-      form.append('orderId', orderDetails?.orderId || '')
       if (screenshot) form.append('screenshot', screenshot)
 
       const res = await fetch('/api/payments', { method: 'POST', body: form })
       const data = await res.json()
 
-      // Local storage history persistence
+      if (!data.ok) {
+        setError(data.message || 'Payment submission failed')
+        return
+      }
+
+      setResult({ paymentId: data.id, orderId: data.orderId })
+
       try {
         const history = JSON.parse(localStorage.getItem('payments') || '[]')
         history.unshift({
-          id: data.id || orderDetails?.orderId,
-          orderId: orderDetails?.orderId,
+          id: data.id,
+          orderId: data.orderId,
           listingId,
           amount: formattedAmount,
           method,
@@ -101,24 +86,6 @@ export default function BuyPanel({ listingId, priceCents }: BuyPanelProps) {
     }
   }
 
-  if (step === 'INITIAL') {
-    return (
-      <div className="space-y-3">
-        <button
-          onClick={handleReserve}
-          className="w-full bg-gradient-to-r from-[#ff6a00] to-[#ff8a3d] hover:from-[#ff8a3d] hover:to-[#ff6a00] text-black font-extrabold py-3 px-4 rounded-xl shadow-lg shadow-[#ff6a00]/20 transition-all transform active:scale-95 text-base flex items-center justify-center gap-2"
-        >
-          <span>⚡ Buy Now (Reserve Item)</span>
-        </button>
-        <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-          <span>🔒 Escrow Protected</span>
-          <span>•</span>
-          <span>bKash / Nagad Accepted</span>
-        </div>
-      </div>
-    )
-  }
-
   if (step === 'SUBMITTED') {
     return (
       <div className="p-5 bg-[#08131d] border border-[#22c55e]/30 rounded-2xl text-center space-y-4">
@@ -129,7 +96,7 @@ export default function BuyPanel({ listingId, priceCents }: BuyPanelProps) {
           <span className="badge badge-accent mb-2">Status: Pending Verification</span>
           <h3 className="text-xl font-extrabold text-slate-100">Payment Proof Submitted</h3>
           <p className="text-xs text-slate-300 mt-1">
-            Order ID: <span className="font-mono text-[#ff8a3d] font-bold">{orderDetails?.orderId}</span>
+            Order ID: <span className="font-mono text-[#ff8a3d] font-bold">{result?.orderId}</span>
           </p>
         </div>
 
@@ -161,23 +128,20 @@ export default function BuyPanel({ listingId, priceCents }: BuyPanelProps) {
 
   return (
     <div className="p-4 bg-[#0d0d12] border border-[#ff6a00]/30 rounded-2xl space-y-5">
-      {/* Order Reservation Badge Header */}
       <div className="flex items-center justify-between border-b border-[#1c1c26] pb-3">
         <div>
-          <div className="text-xs font-bold text-[#ff6a00] uppercase tracking-wider">Item Reserved</div>
-          <div className="text-xs text-slate-400 font-mono">Order ID: {orderDetails?.orderId}</div>
+          <div className="text-xs font-bold text-[#ff6a00] uppercase tracking-wider">Secure Checkout</div>
+          <div className="text-xs text-slate-400">Escrow Protected Payment</div>
         </div>
         <div className="text-right">
-          <div className="text-xs text-amber-400 font-semibold">⏱️ 30:00 Lock</div>
-          <div className="text-[10px] text-slate-500">Auto-expires if unpaid</div>
+          <div className="text-xs text-amber-400 font-semibold">⏱️ 30:00 Reserve</div>
+          <div className="text-[10px] text-slate-500">Item locked on submit</div>
         </div>
       </div>
 
-      {/* Payment Instructions Display */}
       <div className="bg-[#111118] p-4 rounded-xl border border-[#1c1c26] space-y-3">
         <div className="text-xs font-bold text-slate-200">1. Payment Instructions</div>
 
-        {/* Method Picker */}
         <div className="grid grid-cols-3 gap-2">
           {(['bKash', 'Nagad', 'Personal'] as const).map((m) => (
             <button
@@ -195,7 +159,6 @@ export default function BuyPanel({ listingId, priceCents }: BuyPanelProps) {
           ))}
         </div>
 
-        {/* Display Merchant Number & Amount & Reference */}
         <div className="space-y-2 text-xs pt-1">
           <div className="flex items-center justify-between bg-[#0d0d12] p-2.5 rounded-lg border border-[#1c1c26]">
             <div>
@@ -222,24 +185,9 @@ export default function BuyPanel({ listingId, priceCents }: BuyPanelProps) {
             </div>
             <span className="text-[10px] text-slate-400">Send Money / Payment</span>
           </div>
-
-          <div className="flex items-center justify-between bg-[#0d0d12] p-2.5 rounded-lg border border-[#1c1c26]">
-            <div>
-              <span className="text-slate-400 block text-[10px] uppercase">Reference Code</span>
-              <span className="font-mono font-bold text-amber-400 text-xs">{orderDetails?.reference}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => copyToClipboard(orderDetails?.reference || '', 'ref')}
-              className="px-2.5 py-1 bg-[#1c1c26] hover:bg-slate-700 text-slate-200 text-[11px] font-semibold rounded-md transition"
-            >
-              {copiedField === 'ref' ? 'Copied! ✓' : 'Copy'}
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Submission Form */}
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="text-xs font-bold text-slate-200">2. Submit Transaction Proof</div>
 
@@ -284,9 +232,15 @@ export default function BuyPanel({ listingId, priceCents }: BuyPanelProps) {
           disabled={loading}
           className="w-full bg-[#ff6a00] hover:bg-[#ff8a3d] text-black font-extrabold py-2.5 px-4 rounded-xl text-xs transition shadow-md shadow-[#ff6a00]/20"
         >
-          {loading ? 'Submitting Payment Proof...' : 'Submit Payment Proof'}
+          {loading ? 'Reserving & Submitting...' : 'Submit Payment Proof'}
         </button>
       </form>
+
+      <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+        <span>🔒 Escrow Protected</span>
+        <span>•</span>
+        <span>bKash / Nagad Accepted</span>
+      </div>
     </div>
   )
 }

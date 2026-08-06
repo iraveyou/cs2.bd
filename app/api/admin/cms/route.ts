@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CMSRepository } from '../../../../lib/repositories/cms.repository';
 
 export async function GET() {
-  const data = CMSRepository.getCMSData();
-  return NextResponse.json({ success: true, cms: data });
+  try {
+    const data = CMSRepository.getCMSData();
+    return NextResponse.json({ success: true, cms: data });
+  } catch (err: any) {
+    console.error('CMS GET error:', err);
+    return NextResponse.json({ success: false, error: err.message || 'Failed to load CMS data' }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {

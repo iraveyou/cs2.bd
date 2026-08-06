@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -49,6 +50,8 @@ export default function Navbar() {
                 <Link href="/auth/signup" className="btn btn-primary btn-sm">Get Started</Link>
               </>
             ) : (
+              <div className="flex items-center gap-1">
+              <NotificationBell />
               <div ref={menuRef} className="relative">
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}
@@ -135,9 +138,10 @@ export default function Navbar() {
                       </button>
                     </div>
                   </div>
-                )}
-              </div>
-            )}
+                    )}
+                  </div>
+                </div>
+              )}
 
             <button
               className="mobile-menu-btn"

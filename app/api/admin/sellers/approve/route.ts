@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     const app = await sellerRepository.approveApplication(id, notes);
 
-    notifySellerApproved(app.userId).catch(() => {});
+    notifySellerApproved(app.userId).catch(console.error);
 
     return NextResponse.json({ ok: true, message: `Seller application for ${app.name} has been approved!`, data: app });
   } catch (err: any) {

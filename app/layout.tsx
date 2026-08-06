@@ -5,7 +5,6 @@ import Footer from '../components/layout/Footer'
 import AuthProvider from '../components/providers/AuthProvider'
 import MobileBottomNav from '../components/navigation/MobileBottomNav'
 import PwaInstallPrompt from '../components/pwa/PwaInstallPrompt'
-import NotificationBar from '../components/layout/NotificationBar'
 
 export const metadata = {
   title: {
@@ -47,7 +46,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="bg-[#09090b] text-white min-h-screen pb-16 md:pb-0 antialiased selection:bg-[#22c55e] selection:text-[#09090b]">
         <AuthProvider>
           <Navbar />
-          <NotificationBar />
           <div className="pt-16 min-h-screen flex flex-col">
             <main className="flex-1">
               {children}

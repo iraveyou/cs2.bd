@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../../lib/auth/nextauth';
 import { sellerRepository } from '../../../../lib/repositories/seller.repository';
 import { notifySellerApplicationSubmitted } from '../../../../lib/notification-utils';
+import fs from 'fs';
+import path from 'path';
 
 export async function POST(req: Request) {
   try {
@@ -33,8 +35,18 @@ export async function POST(req: Request) {
 
     const file = formData.get('documents') as File | null;
     let documentsUrl = '';
-    if (file && file.name) {
-      documentsUrl = `/uploads/${Date.now()}_${file.name}`;
+    if (file && file.name && typeof (file as any).arrayBuffer === 'function') {
+      try {
+        const buffer = Buffer.from(await (file as any).arrayBuffer());
+        const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+        const filename = `apply_${Date.now()}_${file.name}`;
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, buffer);
+        documentsUrl = `/uploads/${filename}`;
+      } catch (e) {
+        console.error('Failed to save application document:', e);
+      }
     }
 
     const application = await sellerRepository.createApplication({
@@ -55,7 +67,7 @@ export async function POST(req: Request) {
       documentsUrl,
     });
 
-    notifySellerApplicationSubmitted((session as any).userId).catch(() => {});
+    notifySellerApplicationSubmitted((session as any).userId).catch((e) => console.error('Notification error:', e));
 
     return NextResponse.json({
       ok: true,

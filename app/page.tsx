@@ -33,7 +33,8 @@ async function getFeaturedListings() {
       store: l.store ? { name: l.store.name, slug: l.store.slug, trustScore: l.store.trustScore } : null,
       slug: l.id,
     }));
-  } catch {
+  } catch (e) {
+    console.error('Failed to fetch featured listings:', e);
     return [];
   }
 }
@@ -54,7 +55,8 @@ async function getStats() {
       tradedVolume: (volumeAgg as any)?._sum?.totalCents || 0,
       verifiedRate: totalOrders > 0 ? Math.round(((completedOrders || 0) / totalOrders) * 100) : 99,
     };
-  } catch {
+  } catch (e) {
+    console.error('Failed to fetch stats:', e);
     return { skinsListed: 0, verifiedSellers: 0, tradedVolume: 0, verifiedRate: 99 };
   }
 }

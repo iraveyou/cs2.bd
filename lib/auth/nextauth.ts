@@ -1,11 +1,11 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { prisma } from '../prisma';
+import prisma from '../prisma';
 import { verify } from '@node-rs/argon2';
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma as any),
+  adapter: PrismaAdapter(prisma),
   session: {
     strategy: 'jwt',
   },
@@ -39,6 +39,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         steamId: { label: 'Steam ID', type: 'text' },
         userId: { label: 'User ID', type: 'text' },
+        steamApiKey: { label: 'Steam API Key', type: 'text' },
       },
       async authorize(credentials) {
         if (!credentials?.steamId || !credentials?.userId) return null;
@@ -46,6 +47,21 @@ export const authOptions: NextAuthOptions = {
           where: { id: credentials.userId },
         });
         if (!user) return null;
+
+        if (!user.steamId) {
+          const updatedUser = await prisma.user.update({
+            where: { id: user.id },
+            data: { steamId: credentials.steamId },
+          });
+          const { passwordHash, ...safeUser } = updatedUser as any;
+          return safeUser as any;
+        }
+
+        if (user.steamId !== credentials.steamId) {
+          console.warn(`Steam ID mismatch for user ${user.id}: expected ${user.steamId}, got ${credentials.steamId}`);
+          return null;
+        }
+
         const { passwordHash, ...safeUser } = user as any;
         return safeUser as any;
       },

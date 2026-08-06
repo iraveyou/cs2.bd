@@ -38,7 +38,9 @@ export async function GET() {
   if (profile.steamId) {
     try {
       steamPlayer = await getPlayerSummary(profile.steamId);
-    } catch {}
+    } catch (e) {
+      console.error('Failed to fetch Steam player summary:', e);
+    }
   }
 
   return NextResponse.json({ ok: true, profile, steamPlayer });
