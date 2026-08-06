@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: TagPageProps) {
     title,
     description,
     keywords: `${decodedTag}, buy cs2 skins bangladesh, cs2 float bangladesh, cs2bd.bd`,
+    alternates: { canonical: `${process.env.NEXT_PUBLIC_APP_URL || 'https://cs2bd.com'}/tags/${encodeURIComponent(tag)}` },
     openGraph: {
       title,
       description,

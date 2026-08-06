@@ -1,14 +1,34 @@
 import React from 'react';
 import Link from 'next/link';
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '../../../lib/prisma';
 import { getPlayerSummary } from '../../../lib/steam/client';
 import ListingCard from '../../../components/listing/ListingCard';
 
-export const metadata = {
-  title: 'Store — CS2BD',
-  description: 'Verified CS2 skin store on CS2BD Bangladesh',
-};
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cs2bd.com';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const store = await prisma.store.findUnique({
+    where: { slug },
+    select: { name: true, description: true, trustScore: true },
+  });
+
+  const storeName = store?.name || slug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  const title = `${storeName} — Verified CS2 Skin Store | cs2bd Bangladesh`;
+  const description = store?.description
+    || `Browse ${storeName}'s CS2 skin listings on CS2BD Bangladesh. Trust Score: ${store?.trustScore?.toFixed(1) || 'N/A'}. Secure bKash & Nagad payments.`;
+
+  return {
+    title,
+    description,
+    keywords: [`${storeName}`, 'cs2 skin store bangladesh', 'verified cs2 seller bd', 'cs2bd store'],
+    alternates: { canonical: `${baseUrl}/store/${slug}` },
+    openGraph: { title, description, type: 'website' },
+    twitter: { card: 'summary', title, description },
+  };
+}
 
 type SocialLinks = {
   facebook?: string;
@@ -83,7 +103,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
-      {/* Store Header */}
       <div className="relative overflow-hidden bg-gradient-to-br from-[#0d0d12] via-[#111118] to-[#0a0a10] border border-[#1c1c26] rounded-2xl p-6 sm:p-8">
         <div className="absolute top-0 right-0 w-48 h-48 bg-[#22c55e]/3 rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -126,7 +145,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
           </div>
         </div>
 
-        {/* Social Links */}
         {hasSocial && (
           <div className="flex flex-wrap items-center gap-2 mt-6 pt-5 border-t border-[#1c1c26]">
             <span className="text-xs text-slate-500 font-semibold mr-1">Follow:</span>
@@ -144,7 +162,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
           </div>
         )}
 
-        {/* Info row */}
         <div className="flex flex-wrap items-center gap-4 mt-5 pt-4 border-t border-[#1c1c26] text-xs text-slate-500">
           {memberSince && <span>Member since {memberSince}</span>}
           {store.verifiedAt && <span>· Verified on {new Date(store.verifiedAt).toLocaleDateString()}</span>}
@@ -152,7 +169,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
 
-      {/* Store Listings */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-slate-100">Active Listings ({formattedListings.length})</h2>

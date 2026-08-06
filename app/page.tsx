@@ -1,10 +1,32 @@
 import type { Metadata } from 'next';
 import HomeClient from './home/home-client';
 import { prisma } from '../lib/prisma';
+import { generateOrganizationSchema } from '../lib/seo/schema';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cs2bd.com';
 
 export const metadata: Metadata = {
   title: 'CS2BD — Bangladesh CS2 Skins Marketplace',
-  description: 'Buy and sell CS2 skins securely in Bangladesh. Verified sellers, manual payment verification via bKash & Nagad, lowest prices guaranteed.',
+  description: 'Buy and sell CS2 skins securely in Bangladesh. Verified sellers, bKash & Nagad payment verification, lowest prices. Knives, Gloves, Rifles, Pistols & more.',
+  keywords: [
+    'cs2 skins bangladesh', 'cs2 marketplace bd', 'buy cs2 skins', 'sell cs2 skins',
+    'cs2 knife bd', 'cs2 glove bangladesh', 'cs2 trading', 'bkash cs2', 'nagad cs2',
+    'counter strike 2 marketplace', 'cs2 skin escrow', 'steam trade bangladesh',
+  ],
+  alternates: { canonical: baseUrl },
+  openGraph: {
+    title: 'CS2BD — Bangladesh CS2 Skins Marketplace',
+    description: "Bangladesh's #1 CS2 skins marketplace — buy and sell skins securely with bKash & Nagad escrow protection.",
+    url: baseUrl,
+    type: 'website',
+    images: [{ url: '/og-cs2.png', width: 1200, height: 630, alt: 'CS2BD Marketplace' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CS2BD — Bangladesh CS2 Skins Marketplace',
+    description: "Bangladesh's #1 CS2 skins marketplace — buy and sell skins securely with bKash & Nagad escrow protection.",
+    images: ['/og-cs2.png'],
+  },
 };
 
 export const dynamic = 'force-dynamic';
@@ -63,5 +85,15 @@ async function getStats() {
 
 export default async function HomePage() {
   const [featuredListings, stats] = await Promise.all([getFeaturedListings(), getStats()]);
-  return <HomeClient featuredListings={featuredListings} stats={stats} />;
+  const orgSchema = generateOrganizationSchema();
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+      />
+      <HomeClient featuredListings={featuredListings} stats={stats} />
+    </>
+  );
 }

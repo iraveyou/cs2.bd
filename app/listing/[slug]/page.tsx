@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: ListingPageProps) {
     title,
     description,
     keywords: `${titleName}, buy cs2 skins bangladesh, cs2 marketplace bd, ${titleName} bkash nagad`,
+    alternates: { canonical: `${process.env.NEXT_PUBLIC_APP_URL || 'https://cs2bd.com'}/listing/${slug}` },
     openGraph: {
       title,
       description,

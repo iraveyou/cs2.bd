@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: CollectionPageProps) {
     title,
     description,
     keywords: `${collectionName}, CS2 ${collectionName} bangladesh, buy cs2 collection bd, cs2bd game hub`,
+    alternates: { canonical: `${process.env.NEXT_PUBLIC_APP_URL || 'https://cs2bd.com'}/collections/${slug}` },
     openGraph: {
       title,
       description,

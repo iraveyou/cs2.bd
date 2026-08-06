@@ -2,9 +2,28 @@ import type { Metadata } from 'next';
 import MarketplaceClient from './marketplace-client';
 import { prisma } from '../../lib/prisma';
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cs2bd.com';
+
 export const metadata: Metadata = {
-  title: 'CS2 Skins Marketplace — cs2bd',
-  description: 'Browse thousands of CS2 skins listed by verified sellers in Bangladesh. Filter by rarity, weapon, float, and price. Pay via bKash & Nagad.',
+  title: 'CS2 Skins Marketplace — Browse & Buy | cs2bd Bangladesh',
+  description: 'Browse thousands of CS2 skins listed by verified sellers in Bangladesh. Filter by category, rarity, wear, float, and price. Pay securely via bKash & Nagad.',
+  keywords: [
+    'cs2 skins marketplace', 'buy cs2 skins', 'cs2 knife bd', 'cs2 gloves bangladesh',
+    'cs2 ak-47 skins', 'cs2 awp skins', 'cs2 m4 skins', 'cs2 deagle skins',
+    'counter strike 2 marketplace', 'steam skins bangladesh', 'cs2 skin shop bd',
+  ],
+  alternates: { canonical: `${baseUrl}/marketplace` },
+  openGraph: {
+    title: 'CS2 Skins Marketplace | cs2bd Bangladesh',
+    description: 'Browse thousands of CS2 skins from verified Bangladeshi sellers. Filter and buy with bKash & Nagad.',
+    url: `${baseUrl}/marketplace`,
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CS2 Skins Marketplace | cs2bd',
+    description: 'Browse thousands of CS2 skins from verified Bangladeshi sellers.',
+  },
 };
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +36,7 @@ export default async function MarketplacePage() {
       media: { where: { isPrimary: true }, take: 1, select: { url: true } },
     },
     orderBy: { createdAt: 'desc' },
-    take: 100,
+    take: 24,
   });
 
   const listings = dbListings.map((l) => ({

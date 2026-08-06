@@ -3,6 +3,11 @@ import Link from 'next/link';
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
+export const metadata = {
+  title: 'Sign In — CS2BD Bangladesh',
+  description: 'Sign in to your CS2BD account to buy and sell CS2 skins in Bangladesh. Use email/password or Steam to access your dashboard.',
+};
+
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
