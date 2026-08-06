@@ -11,7 +11,6 @@ export async function GET() {
     ssl: { rejectUnauthorized: false },
     max: 1,
     connectionTimeoutMillis: 15000,
-    family: 6,
   });
 
   const results: string[] = [];
