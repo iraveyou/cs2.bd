@@ -99,3 +99,4 @@ const MIGRATION_SQL = [
   `CREATE INDEX IF NOT EXISTS "_ListingTag_B_index" ON "_ListingTag"("B")`,
   `CREATE INDEX IF NOT EXISTS "_ListingCategory_B_index" ON "_ListingCategory"("B")`,
 ];
+
