@@ -1,30 +1,17 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
-import dns from "dns";
 
 export async function GET() {
-  // First test DNS resolution
-  let dnsResult = "pending";
-  let dnsAAAA = "pending";
-  try {
-    const addrs = await dns.promises.resolve("db.gqbwhujmdjnxolhskjst.supabase.co", "AAAA");
-    dnsAAAA = JSON.stringify(addrs);
-  } catch (e: any) {
-    dnsAAAA = "ERROR: " + e.code + " " + e.message;
-  }
-  try {
-    const addrs = await dns.promises.resolve("db.gqbwhujmdjnxolhskjst.supabase.co");
-    dnsResult = JSON.stringify(addrs);
-  } catch (e: any) {
-    dnsResult = "ERROR: " + e.code + " " + e.message;
-  }
-
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    host: "2406:da1a:314:7100:5f35:3590:2d6b:a51e",
+    port: 6543,
+    database: "postgres",
+    user: "postgres",
+    password: "Undergroundcs2storebd",
+    ssl: { rejectUnauthorized: false } as any,
     max: 1,
     connectionTimeoutMillis: 15000,
-  });
+  } as any);
 
   const results: string[] = [];
 
@@ -37,9 +24,9 @@ export async function GET() {
       });
     }
     results.push("migration complete");
-    return NextResponse.json({ ok: true, dnsA: dnsResult, dnsAAAA, steps: results });
+    return NextResponse.json({ ok: true, steps: results });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message, dnsA: dnsResult, dnsAAAA, steps: results }, { status: 500 });
+    return NextResponse.json({ error: e.message, steps: results }, { status: 500 });
   } finally {
     await pool.end();
   }
