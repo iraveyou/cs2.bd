@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
+import dns from "dns";
 
 export async function GET() {
+  // First test DNS resolution
+  let dnsResult = "pending";
+  try {
+    const addrs = await dns.promises.resolve("db.gqbwhujmdjnxolhskjst.supabase.co");
+    dnsResult = JSON.stringify(addrs);
+  } catch (e: any) {
+    dnsResult = "ERROR: " + e.code + " " + e.message;
+  }
+
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
@@ -20,9 +30,9 @@ export async function GET() {
       });
     }
     results.push("migration complete");
-    return NextResponse.json({ ok: true, steps: results });
+    return NextResponse.json({ ok: true, dns: dnsResult, steps: results });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message, detail: e.detail, steps: results }, { status: 500 });
+    return NextResponse.json({ error: e.message, detail: e.detail, dns: dnsResult, steps: results }, { status: 500 });
   } finally {
     await pool.end();
   }
