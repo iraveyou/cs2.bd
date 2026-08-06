@@ -5,6 +5,13 @@ import dns from "dns";
 export async function GET() {
   // First test DNS resolution
   let dnsResult = "pending";
+  let dnsAAAA = "pending";
+  try {
+    const addrs = await dns.promises.resolve("db.gqbwhujmdjnxolhskjst.supabase.co", "AAAA");
+    dnsAAAA = JSON.stringify(addrs);
+  } catch (e: any) {
+    dnsAAAA = "ERROR: " + e.code + " " + e.message;
+  }
   try {
     const addrs = await dns.promises.resolve("db.gqbwhujmdjnxolhskjst.supabase.co");
     dnsResult = JSON.stringify(addrs);
@@ -30,9 +37,9 @@ export async function GET() {
       });
     }
     results.push("migration complete");
-    return NextResponse.json({ ok: true, dns: dnsResult, steps: results });
+    return NextResponse.json({ ok: true, dnsA: dnsResult, dnsAAAA, steps: results });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message, detail: e.detail, dns: dnsResult, steps: results }, { status: 500 });
+    return NextResponse.json({ error: e.message, dnsA: dnsResult, dnsAAAA, steps: results }, { status: 500 });
   } finally {
     await pool.end();
   }
