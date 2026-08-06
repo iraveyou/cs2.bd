@@ -26,6 +26,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/marketplace', label: 'Marketplace', show: true },
+    { href: '/blog', label: 'Blog', show: true },
   ];
 
   return (
