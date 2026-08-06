@@ -3,9 +3,15 @@ import { Pool } from "pg";
 
 export async function GET() {
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    host: "2406:da1a:314:7100:5f35:3590:2d6b:a51e",
+    port: 6543,
+    database: "postgres",
+    user: "postgres",
+    password: "Undergroundcs2storebd",
     ssl: { rejectUnauthorized: false },
     max: 1,
+    connectionTimeoutMillis: 15000,
+    family: 6,
   });
 
   const results: string[] = [];
