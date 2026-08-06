@@ -1,0 +1,18 @@
+How to test locally
+
+Seed admin accounts (dev only)
+curl -X POST http://localhost:3001/api/dev/seed-admins
+Should return created admin ids or 'exists'
+Sign up as buyer or apply as seller at /auth/signup
+Choose account type (Buyer or Apply as Seller)
+On success you will be auto-signed in
+Sign in as admin at /auth/signin using:
+admin1@underground.test / Password123!
+Visit the navbar, Admin Portal link should appear and /admin/dashboard accessible
+As non-admin user, Admin Portal should not be visible
+If you want, next actions I can run now
+
+Add server-side admin page protection (recommended) so /admin routes refuse non-admins.
+Wire buyerId into the payments API (currently buyerId is null); update order creation to set buyer when session exists.
+Create a small migration/seed script (prisma/seed.ts) and run it to create demo admins persistently (instead of dev API).
+Hardening: require NEXTAUTH_SECRET in env and enable secure cookies.

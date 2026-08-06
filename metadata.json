@@ -1,0 +1,6 @@
+{
+  "name": "cs2bd",
+  "description": "Bangladesh CS2 Skins and Items Marketplace",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

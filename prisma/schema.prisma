@@ -1,0 +1,516 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum Role {
+  USER
+  SELLER_APPLICANT
+  SELLER
+  MODERATOR
+  SUPPORT
+  ADMIN
+}
+
+enum OrderStatus {
+  RESERVED
+  PENDING_VERIFICATION
+  AWAITING_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  DISPUTED
+}
+
+enum PaymentStatus {
+  UNPAID
+  SUBMITTED
+  VERIFIED
+  REJECTED
+  DUPLICATE
+  FLAGGED
+  REFUNDED
+}
+
+enum ListingCondition {
+  FACTORY_NEW
+  MINT
+  WELL_WORN
+  FIELD_TESTED
+  BATTLE_SCARRED
+  MINIMAL_WEAR
+  OTHER
+}
+
+enum DeliveryMethod {
+  INSTANT
+  MANUAL_STEAM_TRADE
+  KEY
+  OTHER
+}
+
+enum Currency {
+  BDT
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  INSPECT_VIDEO
+  SCREENSHOT
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  PAYMENT_VERIFY
+  PAYMENT_REJECT
+  ORDER_RESERVE
+  ORDER_RELEASE
+}
+
+// Core models
+model User {
+  id           String    @id @default(uuid())
+  email        String?   @unique
+  phone        String?   @unique
+  name         String?
+  passwordHash String? // used for credentials provider
+  role         Role      @default(USER)
+  is2faEnabled Boolean   @default(false)
+  steamId      String?   @unique
+  discordId    String?   @unique
+  tradeUrl     String?
+
+  store              Store?
+  sessions           Session[]
+  listings           Listing[]        @relation("ListingOwner")
+  orders             Order[]          @relation("BuyerOrders")
+  payments           Payment[]        @relation("BuyerPayments")
+  notifications      Notification[]
+  favorites          Favorite[]
+  recentViews        RecentlyViewed[]
+  reviews            Review[]
+  openedDisputes     Dispute[]
+  respondedDisputes  Dispute[]        @relation("DisputeResponder")
+  buyerConversations Conversation[]   @relation("ConversationBuyer")
+  sellerConversations Conversation[]  @relation("ConversationSeller")
+  messages           Message[]
+  reports            Report[]
+  supportTickets     SupportTicket[]
+  articles           Article[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([email])
+  @@index([phone])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  expiresAt    DateTime
+  sessionToken String   @unique
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Store {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  slug          String    @unique
+  name          String
+  description   String?
+  bannerMediaId String?
+  avatarMediaId String?
+  trustScore    Float     @default(0)
+  verifiedAt    DateTime?
+  kycStatus     String    @default("PENDING")
+  bankDetails   Json?
+  payoutMethods Json?
+  socialLinks   Json?
+  listings      Listing[]
+  orders        Order[]   @relation("StoreOrders")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([slug])
+}
+
+model Listing {
+  id             String           @id @default(uuid())
+  storeId        String
+  store          Store            @relation(fields: [storeId], references: [id])
+  ownerId        String?
+  owner          User?            @relation("ListingOwner", fields: [ownerId], references: [id])
+  sku            String
+  name           String
+  description    String?
+  tags           String[]         @default([])
+  exterior       ListingCondition
+  floatValue     Decimal?         @db.Decimal(5, 4)
+  paintSeed      Int?
+  pattern        String?
+  statTrak       Boolean          @default(false)
+  souvenir       Boolean          @default(false)
+  rarity         String?
+  currency       Currency         @default(BDT)
+  priceCents     Int
+  quantity       Int              @default(1)
+  stock          Int              @default(1)
+  deliveryMethod DeliveryMethod
+  steamLink      String?
+  status         String           @default("ACTIVE")
+  seoMetaId      String?
+  media          ListingMedia[]
+  stats          ListingStats?
+  orderItems     OrderItem[]      @relation("ListingOrderItems")
+  categories     Category[]       @relation("ListingCategory")
+  tags_rel       Tag[]            @relation("ListingTag")
+  favorites      Favorite[]
+  recentViews    RecentlyViewed[]
+  reviews        Review[]
+  conversations  Conversation[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([storeId, sku])
+  @@index([priceCents])
+  @@index([storeId])
+}
+
+model ListingMedia {
+  id        String    @id @default(uuid())
+  listingId String
+  listing   Listing   @relation(fields: [listingId], references: [id])
+  mediaId   String
+  type      MediaType
+  sortOrder Int       @default(0)
+  url       String
+  thumbUrl  String?
+  width     Int?
+  height    Int?
+  isPrimary Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([listingId])
+}
+
+model ListingStats {
+  id         String    @id @default(uuid())
+  listingId  String    @unique
+  listing    Listing   @relation(fields: [listingId], references: [id])
+  views      Int       @default(0)
+  favorites  Int       @default(0)
+  soldCount  Int       @default(0)
+  lastSoldAt DateTime?
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  orderNumber   Int         @default(autoincrement())
+  buyerId       String
+  buyer         User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  storeId       String
+  store         Store       @relation("StoreOrders", fields: [storeId], references: [id])
+  totalCents    Int
+  currency      Currency    @default(BDT)
+  status        OrderStatus
+  reservedUntil DateTime?
+  deliveryInfo  Json?
+  items         OrderItem[]
+  payments      Payment[]   @relation("OrderPayments")
+  dispute       Dispute?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  completedAt   DateTime?
+
+  @@index([buyerId])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id           String  @id @default(uuid())
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id])
+  listingId    String
+  listing      Listing @relation("ListingOrderItems", fields: [listingId], references: [id])
+  priceCents   Int
+  quantity     Int     @default(1)
+  itemSnapshot Json
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  orderId           String
+  order             Order         @relation("OrderPayments", fields: [orderId], references: [id])
+  buyerId           String?
+  buyer             User?         @relation("BuyerPayments", fields: [buyerId], references: [id])
+  amountCents       Int
+  currency          Currency      @default(BDT)
+  status            PaymentStatus @default(UNPAID)
+  paymentMethod     String
+  merchantNumber    String?
+  buyerSenderNumber String?
+  transactionId     String?
+  screenshotMediaId String?
+  submittedAt       DateTime?
+  verifiedAt        DateTime?
+  rejectedAt        DateTime?
+  adminVerifierId   String?
+  flags             Json?
+  meta              Json?
+  createdAt         DateTime      @default(now())
+
+  @@index([transactionId])
+  @@index([buyerSenderNumber])
+}
+
+model Media {
+  id             String   @id @default(uuid())
+  ownerId        String?
+  provider       String // CLOUDINARY, UPLOADTHING, etc.
+  url            String
+  width          Int?
+  height         Int?
+  sizeBytes      Int?
+  mimeType       String?
+  perceptualHash String?
+  safeScore      Float?
+  meta           Json?
+  createdAt      DateTime @default(now())
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  actorId    String?
+  action     AuditAction
+  targetType String?
+  targetId   String?
+  meta       Json?
+  createdAt  DateTime    @default(now())
+}
+
+model SeoMeta {
+  id                  String  @id @default(uuid())
+  titleTemplate       String?
+  descriptionTemplate String?
+  ogTitle             String?
+  ogImage             String?
+  structuredData      Json?
+}
+
+model FeatureFlag {
+  key     String  @id
+  enabled Boolean @default(false)
+  rules   Json?
+}
+
+// Fine-grained RBAC permissions table
+model Permission {
+  id   String  @id @default(uuid())
+  key  String  @unique
+  name String
+  desc String?
+}
+
+// Many-to-many for categories & tags (explicit join tables)
+model Category {
+  id       String    @id @default(uuid())
+  key      String    @unique
+  name     String
+  listings Listing[] @relation("ListingCategory")
+}
+
+model Tag {
+  id       String    @id @default(uuid())
+  key      String    @unique
+  name     String
+  listings Listing[] @relation("ListingTag")
+}
+
+// NOTE: For full-text search, tsvector columns and GIN indexes should be added
+// using a raw SQL migration because Prisma doesn't natively support tsvector:
+// ALTER TABLE "Listing" ADD COLUMN search_vector tsvector;
+// CREATE INDEX listing_search_idx ON "Listing" USING GIN(search_vector);
+
+// Additional models for notifications, favorites, recent views, chat, disputes, reviews, support, blog, and CMS pages
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  channel   String   // browser, email, in_app, sms
+  data      Json
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId])
+  @@index([listingId])
+}
+
+model RecentlyViewed {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  viewedAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([listingId])
+}
+
+model Review {
+  id               String   @id @default(uuid())
+  listingId        String
+  listing          Listing  @relation(fields: [listingId], references: [id])
+  reviewerId       String
+  reviewer         User     @relation(fields: [reviewerId], references: [id])
+  rating           Int
+  title            String?
+  comment          String?
+  images           Json?
+  verifiedPurchase Boolean  @default(false)
+  helpfulCount     Int      @default(0)
+  moderatedAt      DateTime?
+  status           String   @default("VISIBLE")
+  createdAt        DateTime @default(now())
+
+  @@index([listingId, rating])
+  @@index([listingId])
+  @@index([reviewerId])
+}
+
+model Dispute {
+  id          String   @id @default(uuid())
+  orderId     String   @unique
+  order       Order    @relation(fields: [orderId], references: [id])
+  openerId    String
+  opener      User     @relation(fields: [openerId], references: [id])
+  responderId String?
+  responder   User?    @relation("DisputeResponder", fields: [responderId], references: [id])
+  reason      String
+  status      String   @default("OPEN")
+  evidence    Json?
+  resolution  Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([openerId])
+}
+
+model Conversation {
+  id           String   @id @default(uuid())
+  listingId    String?
+  listing      Listing? @relation(fields: [listingId], references: [id])
+  buyerId      String?
+  buyer        User?    @relation("ConversationBuyer", fields: [buyerId], references: [id])
+  sellerId     String?
+  seller       User?    @relation("ConversationSeller", fields: [sellerId], references: [id])
+  subject      String?
+  lastMessageAt DateTime?
+  messages     Message[]
+  createdAt    DateTime @default(now())
+
+  @@index([buyerId])
+  @@index([sellerId])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String
+  sender         User     @relation(fields: [senderId], references: [id])
+  content        String?
+  attachments    Json?
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+model Report {
+  id         String   @id @default(uuid())
+  reporterId String
+  reporter   User     @relation(fields: [reporterId], references: [id])
+  targetType String   // listing, user, message, review, etc.
+  targetId   String
+  reason     String
+  status     String   @default("OPEN")
+  handledBy  String?
+  handledAt  DateTime?
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([reporterId])
+}
+
+model SupportTicket {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  subject    String
+  status     String   @default("OPEN")
+  priority   String   @default("NORMAL")
+  meta       Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Article {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  excerpt     String?
+  content     String   // markdown or HTML
+  authorId    String?
+  author      User?    @relation(fields: [authorId], references: [id])
+  publishedAt DateTime?
+  isDraft     Boolean  @default(true)
+  seoMetaId   String?
+  categories  String[] @default([])
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CMSPage {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  title     String
+  content   String
+  meta      Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// End of additional models
