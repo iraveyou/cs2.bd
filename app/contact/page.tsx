@@ -1,12 +1,6 @@
 'use client';
 import Link from 'next/link';
 
-export const metadata = {
-  title: 'Contact CS2BD — Support & Help | cs2bd Bangladesh',
-  description: 'Contact CS2BD Bangladesh customer support. Get help with orders, payments, seller verification, and disputes. Email, Discord, and contact form available.',
-  keywords: ['cs2bd contact', 'cs2bd support', 'cs2 marketplace help bangladesh', 'cs2 skin dispute support'],
-};
-
 export default function ContactPage() {
   return (
     <main className="container" style={{ padding: '3rem 1rem', maxWidth: 800 }}>

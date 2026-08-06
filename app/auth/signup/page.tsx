@@ -2,12 +2,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-export const metadata = {
-  title: 'Create Account — CS2BD Bangladesh',
-  description: 'Sign up for CS2BD to buy CS2 skins with bKash/Nagad or apply to become a verified seller in Bangladesh.',
-  keywords: ['cs2bd signup', 'create cs2bd account', 'register cs2 marketplace bd'],
-};
-
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
