@@ -38,7 +38,10 @@ async function verifySteamOpenId(params: URLSearchParams): Promise<string | null
 }
 
 async function signInViaCredentials(user: { id: string; steamId: string; name: string | null; email: string | null; role: string }, redirectTo?: string) {
-  const secret = process.env.NEXTAUTH_SECRET || '';
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error('NEXTAUTH_SECRET is not set');
+  }
   const maxAge = 30 * 24 * 60 * 60;
 
   const token = await encode({
@@ -72,57 +75,64 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const baseUrl = getBaseUrl();
 
-  const steamId64 = await verifySteamOpenId(searchParams);
-  if (!steamId64) {
+  try {
+    const steamId64 = await verifySteamOpenId(searchParams);
+    if (!steamId64) {
+      return NextResponse.redirect(
+        `${baseUrl}/auth/signin?error=SteamAuthFailed`
+      );
+    }
+
+    const roleParam = searchParams.get('role') || 'buyer';
+    const newUserRole = roleParam === 'seller' ? 'SELLER_APPLICANT' : 'USER';
+
+    let existingUser = await prisma.user.findUnique({
+      where: { steamId: steamId64 },
+    });
+
+    if (!existingUser) {
+      let playerName: string | null = null;
+      try {
+        const player = await getPlayerSummary(steamId64);
+        if (player) playerName = player.personaname;
+      } catch {}
+
+      const displayName = playerName || `SteamUser_${steamId64.slice(-6)}`;
+      const email = `${steamId64}@steam.cs2bd`;
+
+      try {
+        existingUser = await prisma.user.create({
+          data: {
+            steamId: steamId64,
+            name: displayName,
+            email,
+            role: newUserRole,
+          },
+        });
+      } catch {
+        return NextResponse.redirect(
+          `${baseUrl}/auth/signin?error=AccountCreationFailed`
+        );
+      }
+    }
+
+    const redirectDest = roleParam === 'seller' && existingUser.role === 'SELLER_APPLICANT'
+      ? `${baseUrl}/seller/dashboard`
+      : existingUser.role === 'SELLER' || existingUser.role === 'SELLER_APPLICANT' || existingUser.role === 'ADMIN'
+        ? `${baseUrl}/seller/dashboard`
+        : `${baseUrl}/buyer/dashboard`;
+
+    return signInViaCredentials({
+      id: existingUser.id,
+      steamId: existingUser.steamId!,
+      name: existingUser.name,
+      email: existingUser.email,
+      role: existingUser.role,
+    }, redirectDest);
+  } catch (error) {
+    console.error('Steam callback error:', error);
     return NextResponse.redirect(
       `${baseUrl}/auth/signin?error=SteamAuthFailed`
     );
   }
-
-  const roleParam = searchParams.get('role') || 'buyer';
-  const newUserRole = roleParam === 'seller' ? 'SELLER_APPLICANT' : 'USER';
-
-  let existingUser = await prisma.user.findUnique({
-    where: { steamId: steamId64 },
-  });
-
-  if (!existingUser) {
-    let playerName: string | null = null;
-    try {
-      const player = await getPlayerSummary(steamId64);
-      if (player) playerName = player.personaname;
-    } catch {}
-
-    const displayName = playerName || `SteamUser_${steamId64.slice(-6)}`;
-    const email = `${steamId64}@steam.cs2bd`;
-
-    try {
-      existingUser = await prisma.user.create({
-        data: {
-          steamId: steamId64,
-          name: displayName,
-          email,
-          role: newUserRole,
-        },
-      });
-    } catch {
-      return NextResponse.redirect(
-        `${baseUrl}/auth/signin?error=AccountCreationFailed`
-      );
-    }
-  }
-
-  const redirectDest = roleParam === 'seller' && existingUser.role === 'SELLER_APPLICANT'
-    ? `${baseUrl}/seller/dashboard`
-    : existingUser.role === 'SELLER' || existingUser.role === 'SELLER_APPLICANT' || existingUser.role === 'ADMIN'
-      ? `${baseUrl}/seller/dashboard`
-      : `${baseUrl}/buyer/dashboard`;
-
-  return signInViaCredentials({
-    id: existingUser.id,
-    steamId: existingUser.steamId!,
-    name: existingUser.name,
-    email: existingUser.email,
-    role: existingUser.role,
-  }, redirectDest);
 }
